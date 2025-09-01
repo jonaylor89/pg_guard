@@ -1,0 +1,31 @@
+[package]
+name = "vibedb"
+version = "0.1.0"
+edition = "2024"
+description = "A Postgres proxy with built-in safety features"
+license = "MIT"
+authors = ["Johannes Naylor <jonaylor89@gmail.com>"]
+repository = "https://github.com/johannes/vibedb"
+homepage = "https://github.com/johannes/vibedb"
+documentation = "https://docs.rs/vibedb"
+keywords = ["postgres", "proxy", "database", "safety", "sql"]
+categories = ["database"]
+readme = "README.md"
+
+[dependencies]
+bytes = "1.10.1"
+clap = { version = "4.5.46", features = ["derive"] }
+color-eyre = "0.6.5"
+env_logger = "0.11.8"
+log = "0.4.27"
+regex = "1.11.2"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.143"
+sqlparser = "0.58.0"
+tokio = { version = "1.47.1", features = ["full"] }
+tokio-postgres = "0.7.13"
+url = "2.5.7"
+
+[[bin]]
+name = "vibedb"
+path = "src/main.rs"
