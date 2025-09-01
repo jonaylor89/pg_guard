@@ -16,6 +16,7 @@ readme = "README.md"
 bytes = "1.10.1"
 clap = { version = "4.5.46", features = ["derive"] }
 color-eyre = "0.6.5"
+config = "0.15.15"
 env_logger = "0.11.8"
 log = "0.4.27"
 regex = "1.11.2"
