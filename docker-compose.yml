@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d
+      - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -28,12 +28,7 @@ services:
       - "6543:6543"
     environment:
       - RUST_LOG=info
-    command: >
-      vibedb
-      --listen 0.0.0.0:6543
-      --db-url postgres://postgres:postgres@postgres:5432/postgres
-      --max-rows 1
-      --strict
+    command: vibedb --listen 0.0.0.0:6543 --db-url postgres://postgres:postgres@postgres:5432/postgres --max-rows 1
     restart: unless-stopped
 
   pgadmin:

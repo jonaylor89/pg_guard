@@ -1,0 +1,15 @@
+
+[server]
+listen = "0.0.0.0:6543"
+
+[database]
+url = "postgres://postgres:postgres@localhost:5432/postgres"
+
+[limits]
+max_rows = 500
+
+[security]
+honeytokens = ["_vibedb_canary"]
+
+[logging]
+level = "info"

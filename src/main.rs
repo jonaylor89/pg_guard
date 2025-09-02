@@ -1,37 +1,97 @@
 use clap::Parser;
 use color_eyre::eyre::Result;
-use log::{error, info, warn};
+use config::{Config, Environment, File};
+use serde::{Deserialize, Serialize};
 use sqlparser::ast::Statement;
 use sqlparser::dialect::PostgreSqlDialect;
 use sqlparser::parser::Parser as SqlParser;
 use std::net::SocketAddr;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_postgres::{Client, NoTls};
+use tracing::{Subscriber, subscriber::set_global_default};
+use tracing::{error, info, warn};
+use tracing_log::LogTracer;
+use tracing_subscriber::{EnvFilter, Registry, fmt, layer::SubscriberExt};
 
 #[derive(Parser, Debug)]
 #[command(name = "vibedb")]
 #[command(about = "A Postgres proxy with built-in safety features")]
-struct Args {
-    #[arg(long, default_value = "0.0.0.0:6543")]
-    listen: SocketAddr,
+struct CliArgs {
+    #[arg(short, long, help = "Configuration file path")]
+    config: Option<String>,
 
-    #[arg(long)]
-    db_url: String,
+    #[arg(long, help = "Address to listen on")]
+    listen: Option<SocketAddr>,
 
-    #[arg(long, default_value = "true")]
-    strict: bool,
+    #[arg(long, help = "Database URL")]
+    db_url: Option<String>,
 
-    #[arg(long, default_value = "500")]
+    #[arg(long, help = "Maximum rows for DELETE/UPDATE operations")]
+    max_rows: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct AppConfig {
+    server: ServerConfig,
+    database: DatabaseConfig,
+    limits: LimitsConfig,
+    security: SecurityConfig,
+    logging: LoggingConfig,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct ServerConfig {
+    listen: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct DatabaseConfig {
+    url: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct LimitsConfig {
     max_rows: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct SecurityConfig {
+    honeytokens: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct LoggingConfig {
+    level: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            server: ServerConfig {
+                listen: "0.0.0.0:6543".to_string(),
+            },
+            database: DatabaseConfig {
+                url: "postgres://postgres:postgres@localhost:5432/postgres".to_string(),
+            },
+            limits: LimitsConfig { max_rows: 500 },
+            security: SecurityConfig {
+                honeytokens: vec!["_vibedb_canary".to_string()],
+            },
+            logging: LoggingConfig {
+                level: "info".to_string(),
+            },
+        }
+    }
 }
 
 #[derive(Clone)]
 struct ProxyConfig {
     db_url: String,
-    strict: bool,
     max_rows: i64,
+    honeytokens: Vec<String>,
 }
 
 enum QueryAction {
@@ -47,10 +107,13 @@ impl QueryAnalyzer {
         Self {}
     }
 
-    fn analyze_query(&self, query: &str) -> QueryAction {
+    fn analyze_query(&self, query: &str, honeytokens: &[String]) -> QueryAction {
         // Honeytoken detection
-        if query.to_lowercase().contains("_vibedb_canary") {
-            return QueryAction::Block("honeytoken table access detected".to_string());
+        let query_lower = query.to_lowercase();
+        for honeytoken in honeytokens {
+            if query_lower.contains(&honeytoken.to_lowercase()) {
+                return QueryAction::Block("honeytoken table access detected".to_string());
+            }
         }
 
         let dialect = PostgreSqlDialect {};
@@ -214,7 +277,7 @@ impl PostgresProxy {
                             if let Some(query) = self.extract_query_from_message(data) {
                                 info!("intercepted query: {}", query);
 
-                                match self.analyzer.analyze_query(&query) {
+                                match self.analyzer.analyze_query(&query, &self.config.honeytokens) {
                                     QueryAction::Allow => {
                                         info!("[ALLOW] {}", query);
                                         if let Err(e) = db_stream.write_all(data).await {
@@ -342,42 +405,92 @@ impl PostgresProxy {
     }
 }
 
+fn load_config() -> Result<AppConfig> {
+    let cli_args = CliArgs::parse();
+
+    let mut builder = Config::builder()
+        .add_source(Config::try_from(&AppConfig::default())?)
+        .add_source(Environment::with_prefix("VIBEDB").separator("__"));
+
+    // Load config file if specified or if default exists
+    let config_path = cli_args.config.as_deref().unwrap_or("vibedb.toml");
+
+    if Path::new(config_path).exists() {
+        info!("loading config from: {}", config_path);
+        builder = builder.add_source(File::with_name(config_path));
+    }
+
+    // Override with CLI arguments
+    if let Some(listen) = cli_args.listen {
+        builder = builder.set_override("server.listen", listen.to_string())?;
+    }
+    if let Some(db_url) = cli_args.db_url {
+        builder = builder.set_override("database.url", db_url)?;
+    }
+    if let Some(max_rows) = cli_args.max_rows {
+        builder = builder.set_override("limits.max_rows", max_rows)?;
+    }
+
+    let config = builder.build()?.try_deserialize()?;
+
+    Ok(config)
+}
+
+pub fn get_subscriber(env_filter: String) -> impl Subscriber + Send + Sync {
+    let env_filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
+
+    Registry::default()
+        .with(env_filter)
+        .with(fmt::layer().with_target(false))
+}
+
+pub fn init_subscriber(subscriber: impl Subscriber + Send + Sync) {
+    LogTracer::init().expect("Failed to set logger");
+
+    set_global_default(subscriber).expect("Failed to set subscriber");
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
-    env_logger::init();
-    let args = Args::parse();
 
-    info!("starting VibeDB Postgres Proxy");
-    info!("listening on: {}", args.listen);
-    info!("database URL: {}", args.db_url);
-    info!("strict mode: {}", args.strict);
-    info!("max rows: {}", args.max_rows);
+    let app_config = load_config()?;
 
-    let proxy_url = if let Ok(mut parsed_url) = url::Url::parse(&args.db_url) {
+    let subscriber = get_subscriber(app_config.logging.level.clone());
+    init_subscriber(subscriber);
+    let listen_addr: SocketAddr = app_config.server.listen.parse()?;
+
+    info!("starting vibedb postgres proxy");
+    info!("listening on: {}", listen_addr);
+    info!("database URL: {}", app_config.database.url);
+    info!("max rows: {}", app_config.limits.max_rows);
+    info!("honeytokens: {:?}", app_config.security.honeytokens);
+
+    let proxy_url = if let Ok(mut parsed_url) = url::Url::parse(&app_config.database.url) {
         parsed_url
-            .set_host(Some(&args.listen.ip().to_string()))
+            .set_host(Some(&listen_addr.ip().to_string()))
             .ok();
-        parsed_url.set_port(Some(args.listen.port())).ok();
+        parsed_url.set_port(Some(listen_addr.port())).ok();
         parsed_url.to_string()
     } else {
         format!(
             "postgres://user:pass@{}:{}/<database>",
-            args.listen.ip(),
-            args.listen.port()
+            listen_addr.ip(),
+            listen_addr.port()
         )
     };
 
     info!("connect through proxy: {}", proxy_url);
 
     let config = ProxyConfig {
-        db_url: args.db_url,
-        strict: args.strict,
-        max_rows: args.max_rows,
+        db_url: app_config.database.url,
+        max_rows: app_config.limits.max_rows,
+        honeytokens: app_config.security.honeytokens,
     };
 
     let proxy = Arc::new(PostgresProxy::new(config));
-    let listener = TcpListener::bind(args.listen).await?;
+    let listener = TcpListener::bind(listen_addr).await?;
 
     info!("proxy server started successfully");
 

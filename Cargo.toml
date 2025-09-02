@@ -16,14 +16,16 @@ readme = "README.md"
 bytes = "1.10.1"
 clap = { version = "4.5.46", features = ["derive"] }
 color-eyre = "0.6.5"
-env_logger = "0.11.8"
-log = "0.4.27"
+config = "0.15.15"
 regex = "1.11.2"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.143"
 sqlparser = "0.58.0"
 tokio = { version = "1.47.1", features = ["full"] }
 tokio-postgres = "0.7.13"
+tracing = "0.1.41"
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 url = "2.5.7"
 
 [[bin]]
