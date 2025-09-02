@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/jonaylor89/vibedb/compare/v0.1.1...v0.1.2) - 2025-09-02
+
+### Other
+
+- use tracing logs
+- use 'config' instead of just clap
+
 ## [0.1.1](https://github.com/jonaylor89/vibedb/compare/v0.1.0...v0.1.1) - 2025-09-01
 
 ### Other
