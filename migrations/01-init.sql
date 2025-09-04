@@ -1,4 +1,4 @@
--- Initial database setup for VibeDB testing
+-- Initial database setup for pg_guard testing
 
 -- Create a users table for testing
 CREATE TABLE IF NOT EXISTS users (
@@ -42,14 +42,14 @@ SELECT
 FROM generate_series(1, 1000) i;
 
 -- Create the honeytoken table (should trigger blocking)
-CREATE TABLE IF NOT EXISTS _vibedb_canary (
+CREATE TABLE IF NOT EXISTS _pg_guard_canary (
     id SERIAL PRIMARY KEY,
     secret TEXT NOT NULL,
     accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert honeytoken data
-INSERT INTO _vibedb_canary (secret) VALUES 
+INSERT INTO _pg_guard_canary (secret) VALUES 
     ('This is a canary token - accessing this should be blocked!');
 
 -- Create a view for testing

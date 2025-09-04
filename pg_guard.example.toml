@@ -9,7 +9,7 @@ url = "postgres://postgres:postgres@localhost:5432/postgres"
 max_rows = 500
 
 [security]
-honeytokens = ["_vibedb_canary"]
+honeytokens = ["_pg_guard_canary"]
 
 [logging]
 level = "info"

@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: vibedb-postgres
+    container_name: pg_guard-postgres
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -18,9 +18,9 @@ services:
       timeout: 5s
       retries: 5
 
-  vibedb:
+  pg_guard:
     build: .
-    container_name: vibedb-proxy
+    container_name: pg_guard-proxy
     depends_on:
       postgres:
         condition: service_healthy
@@ -28,14 +28,14 @@ services:
       - "6543:6543"
     environment:
       - RUST_LOG=info
-    command: vibedb --listen 0.0.0.0:6543 --db-url postgres://postgres:postgres@postgres:5432/postgres --max-rows 1
+    command: pg_guard --listen 0.0.0.0:6543 --db-url postgres://postgres:postgres@postgres:5432/postgres --max-rows 1
     restart: unless-stopped
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: vibedb-pgadmin
+    container_name: pg_guard-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@vibedb.com
+      PGADMIN_DEFAULT_EMAIL: admin@pg_guard.com
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:

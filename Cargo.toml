@@ -1,13 +1,13 @@
 [package]
-name = "vibedb"
+name = "pg_guard"
 version = "0.1.2"
 edition = "2024"
 description = "A Postgres proxy with built-in safety features"
 license = "MIT"
 authors = ["Johannes Naylor <jonaylor89@gmail.com>"]
-repository = "https://github.com/johannes/vibedb"
-homepage = "https://github.com/johannes/vibedb"
-documentation = "https://docs.rs/vibedb"
+repository = "https://github.com/johannes/pg_guard"
+homepage = "https://github.com/johannes/pg_guard"
+documentation = "https://docs.rs/pg_guard"
 keywords = ["postgres", "proxy", "database", "safety", "sql"]
 categories = ["database"]
 readme = "README.md"
@@ -29,5 +29,5 @@ tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
 url = "2.5.7"
 
 [[bin]]
-name = "vibedb"
+name = "pg_guard"
 path = "src/main.rs"

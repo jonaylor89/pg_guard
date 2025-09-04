@@ -1,4 +1,4 @@
-# VibeDB Postgres Proxy Development Commands
+# pg_guard Postgres Proxy Development Commands
 
 # Default task - shows available commands
 default:

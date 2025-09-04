@@ -1,11 +1,11 @@
-# VibeDB: Cursor-proof your database
+# pg_guard: Cursor-proof your database
 
 **A Postgres proxy with built-in safety features and row-level damage limiting**
 
 ![Cursor Drops DB](./images/cursor.png)
 
 
-VibeDB is a Postgres proxy server that sits between your applications and your database, providing real-time query analysis and protection against dangerous operations. It implements transparent TCP proxying with PostgreSQL wire protocol support with human readable messages to help claude/cursor understand how to better make DB calls.
+pg_guard is a Postgres proxy server that sits between your applications and your database, providing real-time query analysis and protection against dangerous operations. It implements transparent TCP proxying with PostgreSQL wire protocol support with human readable messages to help claude/cursor understand how to better make DB calls.
 
 ## Features
 
@@ -20,9 +20,9 @@ VibeDB is a Postgres proxy server that sits between your applications and your d
 ## Quick Start
 
 ```bash
-cargo install vibedb
+cargo install pg_guard
 
-vibedb \
+pg_guard \
   --listen 0.0.0.0:6543 \
   --db-url postgres://postgres:postgres@localhost:5432/postgres \
   --max-rows 500 \
@@ -54,12 +54,12 @@ DELETE FROM users WHERE created_at < '2020-01-01';
 
 ```sql
 -- ❌ BLOCKED: Any access to canary tables
-SELECT * FROM _vibedb_canary;
+SELECT * FROM _pg_guard_canary;
 ```
 
 ### 4. Snapshot Logging
 
-Before allowing destructive operations, VibeDB logs:
+Before allowing destructive operations, pg_guard logs:
 ```
 [snapshot] Would take backup here
 [ALLOW] DELETE FROM users WHERE role = 'inactive' → 12 rows

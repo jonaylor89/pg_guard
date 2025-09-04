@@ -17,7 +17,7 @@ use tracing_log::LogTracer;
 use tracing_subscriber::{EnvFilter, Registry, fmt, layer::SubscriberExt};
 
 #[derive(Parser, Debug)]
-#[command(name = "vibedb")]
+#[command(name = "pg_guard")]
 #[command(about = "A Postgres proxy with built-in safety features")]
 struct CliArgs {
     #[arg(short, long, help = "Configuration file path")]
@@ -78,7 +78,7 @@ impl Default for AppConfig {
             },
             limits: LimitsConfig { max_rows: 500 },
             security: SecurityConfig {
-                honeytokens: vec!["_vibedb_canary".to_string()],
+                honeytokens: vec!["_pg_guard_canary".to_string()],
             },
             logging: LoggingConfig {
                 level: "info".to_string(),
@@ -410,10 +410,10 @@ fn load_config() -> Result<AppConfig> {
 
     let mut builder = Config::builder()
         .add_source(Config::try_from(&AppConfig::default())?)
-        .add_source(Environment::with_prefix("VIBEDB").separator("__"));
+        .add_source(Environment::with_prefix("PG_GUARD").separator("__"));
 
     // Load config file if specified or if default exists
-    let config_path = cli_args.config.as_deref().unwrap_or("vibedb.toml");
+    let config_path = cli_args.config.as_deref().unwrap_or("pg_guard.toml");
 
     if Path::new(config_path).exists() {
         info!("loading config from: {}", config_path);
@@ -461,7 +461,7 @@ async fn main() -> Result<()> {
     init_subscriber(subscriber);
     let listen_addr: SocketAddr = app_config.server.listen.parse()?;
 
-    info!("starting vibedb postgres proxy");
+    info!("starting pg_guard postgres proxy");
     info!("listening on: {}", listen_addr);
     info!("database URL: {}", app_config.database.url);
     info!("max rows: {}", app_config.limits.max_rows);
