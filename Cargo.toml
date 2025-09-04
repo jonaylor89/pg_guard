@@ -8,7 +8,7 @@ authors = ["Johannes Naylor <jonaylor89@gmail.com>"]
 repository = "https://github.com/johannes/pg_guard"
 homepage = "https://github.com/johannes/pg_guard"
 documentation = "https://docs.rs/pg_guard"
-keywords = ["postgres", "proxy", "database", "safety", "sql", "vibecode"]
+keywords = ["postgres", "proxy", "database", "sql", "vibecode"]
 categories = ["database"]
 readme = "README.md"
 
