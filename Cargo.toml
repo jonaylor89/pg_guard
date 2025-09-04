@@ -1,6 +1,6 @@
 [package]
 name = "pg_guard"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "A Postgres proxy with built-in safety features"
 license = "MIT"
